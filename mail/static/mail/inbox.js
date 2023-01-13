@@ -25,7 +25,7 @@ function compose_email() {
   document.querySelector('#compose-body').value = '';
 }
 
-function send_email() {
+function send_email(event) {
   let recipients = document.querySelector("#compose-recipients").value
   let subject = document.querySelector("#compose-subject").value
   let body = document.querySelector("#compose-body").value
@@ -39,12 +39,13 @@ function send_email() {
       "body": body,
     })
   })
-    .then(response => response.JSON())
-    .then(result => {
+    .then((response) => response.json())
+    .then((result) => {
       // Print Result
-      console.log(result)
+      console.log(result);
       load_mailbox('sent');
     });
+  event.preventDefault();
 }
 
 
