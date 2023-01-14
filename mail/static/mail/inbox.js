@@ -50,7 +50,6 @@ function send_email(event) {
 
 
 function load_mailbox(mailbox) {
-
   // Show the mailbox and hide other views
   document.querySelector('#emails-view').style.display = 'block';
   document.querySelector('#compose-view').style.display = 'none';
@@ -65,22 +64,91 @@ function load_mailbox(mailbox) {
       console.log(emails);
 
       emails.forEach(email => {
-        // Get data from json given by email
-        let sender = email.sender;
-        let subject = email.subject;
-        let timestamp = email.timestamp;
-        let read = email.read;
-
-
         // Displaying the information recieved
         const emailEntries = document.createElement("div");
-        if (read) {
-          emailEntries.innerHTML = `<div style="border: 1px solid #3f3e3e;border-radius: 7px; background: gray; padding: 10px 5px 10px 5px; margin: 10px 0 10px 0;">Sender: ${sender} Subject: ${subject} timestamp: ${timestamp}</div>`;
+
+        if (email.read) {
+          emailEntries.innerHTML = `<div id="email_div_${email.id}" style="border: 1px solid #3f3e3e;border-radius: 7px; background: gray; padding: 10px 5px 10px 5px; margin: 10px 0 10px 0;">Sender: ${email.sender} Subject: ${email.subject} timestamp: ${email.timestamp}</div>`;
         }
         else {
-          emailEntries.innerHTML = `<div style="border: 1px solid #c0c1c1;border-radius: 7px; background: white; padding: 10px 5px 10px 5px; margin: 10px 0 10px 0;">Sender: ${sender} Subject: ${subject} timestamp: ${timestamp}</div>`;
+          emailEntries.innerHTML = `<div id="email_div_${email.id}" style="border: 1px solid #c0c1c1;border-radius: 7px; background: white; padding: 10px 5px 10px 5px; margin: 10px 0 10px 0;">Sender: ${email.sender} Subject: ${email.subject} timestamp: ${email.timestamp}</div>`;
         }
+
         document.querySelector("#emails-view").append(emailEntries);
+        document.querySelector(`#email_div_${email.id}`).addEventListener('click', () => {
+          fetch(`/emails/${email.id}`) // Data is captured here for clicked element
+            .then(response => response.json())
+            .then(email => {
+
+              fetch(`/emails/${email.id}`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                  read: true
+                })
+              });
+
+              let email_view_page = document.querySelector("#emails-view")
+
+
+              // HTML for email view
+              email_view_page.innerHTML = `<br><div><strong>From:</strong> ${email.sender}</div>`;
+              email_view_page.innerHTML += `<div><strong  style="padding-right: 22px;">To:</strong> ${email.recipients}</div>`;
+              email_view_page.innerHTML += `<br><div><strong>Subject:</strong> ${email.subject}</div>`;
+              email_view_page.innerHTML += `<div><strong>Timestamp:</strong> ${email.timestamp}</div>`;
+
+              // Archived verification
+              if (!email.archived) {
+                email_view_page.innerHTML += `<br><button class="btn btn-sm btn-outline-primary" id="archive">Archive</button>`;
+              } else {
+                email_view_page.innerHTML += `<br><button class="btn btn-sm btn-outline-primary" id="archive">Unarchive</button>`;
+              }
+
+              email_view_page.innerHTML += "<hr>"
+              email_view_page.innerHTML += `<br><div><p>${email.body}</p></div>`;
+
+              document.querySelector('#archive').addEventListener('click', () => {
+                archive_button(email.id, email.archived);
+              });
+            })
+
+            // Catch errors so they can be seen and accessed in the log
+            .catch(error => {
+              console.log('Error:', error);
+            });
+        })
       });
+    })
+    .catch(error => {
+      console.log('Error:', error);
     });
+}
+
+function archive_button(email_id, archive_boolean) {
+  if (!archive_boolean) {
+    fetch(`/emails/${email_id}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        archived: true
+      })
+    })
+      .then(() => {
+        load_mailbox('inbox');
+      })
+      .catch(error => {
+        console.log('Error:', error);
+      });
+  } else {
+    fetch(`/emails/${email_id}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        archived: false
+      })
+    })
+      .then(() => {
+        load_mailbox('inbox');
+      })
+      .catch(error => {
+        console.log('Error:', error);
+      });
+  }
 }
